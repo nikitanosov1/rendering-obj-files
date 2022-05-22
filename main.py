@@ -1,11 +1,17 @@
 import math
+import time
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageTk
 import random
+import tkinter as tk
+
 np.seterr(divide='ignore', invalid='ignore')
 
 SCALE_ALL = 1
+
+scale = 0.5
+
 
 # FOR CAR
 H = W = int(1000 * SCALE_ALL)
@@ -19,6 +25,10 @@ SHIFT_Y = int(-500 * SCALE_ALL)
 
 LIGHT_VECTOR = [0.0, 0.0, 1.0]
 INIT_Z_BUFFER = 100000
+
+a = 0
+b = 0
+c = 0#math.pi/4
 
 norm_vector_of_tops = []
 
@@ -288,9 +298,9 @@ def drawTriangle(x0, y0, z0, x1, y1, z1, x2, y2, z2, zBuffer, matrixOfImage, ind
                     z = barCoords[0] * z0 + barCoords[1] * z1 + barCoords[2] * z2
                     if z < zBuffer[y, x]:
                         #matrixOfImage[y, x] = [r * abs(cos), g * abs(cos), b * abs(cos)]
-                        #matrixOfImage[H - y, x] = [255 * abs(cos), 0, 0]
+                        matrixOfImage[H - y, x] = [255 * abs(cos), 0, 0]
 
-                        matrixOfImage[H - y, x] = [-255 * (l0 * barCoords[0] + l1 * barCoords[1] + l2 * barCoords[2]), 0, 0]
+                        #matrixOfImage[H - y, x] = [-255 * (l0 * barCoords[0] + l1 * barCoords[1] + l2 * barCoords[2]), 0, 0]
 
                         #print(y, x)
                         zBuffer[y, x] = z
@@ -321,7 +331,7 @@ def cosBetweenVectors(v1, v2):
 def pixelToScreenPixel(x, y, z):
     pixel = np.array([[x], [y], [z]], float)
     #scale = 1
-    scale = 0.5
+    #scale = 0.5
 
     t = np.array([[0], [0], [0.15*scale]], float)
     intrinsic = np.array([[400*scale, 0, 500], [0, 400*scale, 500], [0, 0, 1]], float)
@@ -331,9 +341,9 @@ def pixelToScreenPixel(x, y, z):
     return result[0], result[1], result[2]
 
 def rotate(x, y, z):
-    a = 0
-    b = math.pi/15#math.pi/4
-    c = 0#math.pi/4
+    #a = 0
+    #b = math.pi/4
+    #c = 0#math.pi/4
     pixel = np.array([[x], [y], [z]], float)
     X_rotate = np.array([[1, 0, 0], [0, math.cos(a), math.sin(a)], [0, -math.sin(a), math.cos(a)]], float)
     Y_rotate = np.array([[math.cos(b), 0, math.sin(b)], [0, 1, 0], [-math.sin(b), 0, math.cos(b)]], float)
@@ -344,9 +354,12 @@ def rotate(x, y, z):
     result = list(map(float, result))
     return result[0], result[1], result[2]
 
-def run():
-    zBuffer = np.full((H, W), np.inf, dtype=np.float64)
-    matrixOfImage = np.zeros((H, W, 3), dtype=np.uint8)
+
+tops = []  # Массив вершин
+polygons = []
+temp = []
+
+def readFile(fileName):
     #drawStar1(100, 100, 90, matrixOfImage.copy())
     #drawStar2(100, 100, 90, matrixOfImage.copy())
     #drawStar3(100, 100, 90, matrixOfImage.copy())
@@ -354,13 +367,8 @@ def run():
     #drawStar5(100, 100, 70, matrixOfImage.copy())
 
 
-    tops = []  # Массив вершин
-    polygons = []
-
-
-    temp = []
     #file = open("fox.obj", "r")
-    file = open("another_model.obj", "r")
+    file = open(fileName, "r")
     #file = open("Audi RS7 Sport Perfomance.obj", "r")
     for line in file:
         line = line.split()
@@ -382,11 +390,6 @@ def run():
         if len(line) > 0 and line[0] == 'vn':
             temp = list(map(float, [line[1], line[2], line[3]]))
             norm_vector_of_tops.append(temp)
-
-    print (norm_vector_of_tops[0])
-    print(polygons[0])
-    print(len(tops))
-    print(len(norm_vector_of_tops))
     file.close()
 
 
@@ -396,6 +399,28 @@ def run():
     #    y = top[1]
     #    z = top[2]
     #    matrixOfImage[int(H - y), int(x)] = 255
+
+def redraw():
+    global scale
+    scale = float(message.get())
+    global LIGHT_VECTOR
+    LIGHT_VECTOR[0] = float(msg_X.get())
+    LIGHT_VECTOR[1] = float(msg_Y.get())
+    LIGHT_VECTOR[2] = float(msg_Z.get())
+    global a
+    global b
+    global c
+    a = float(msg_a.get())*math.pi/180
+    b = float(msg_b.get())*math.pi/180
+    c = float(msg_c.get())*math.pi/180
+
+
+
+
+    print("redrawing...")
+
+    zBuffer = np.full((H, W), np.inf, dtype=np.float64)
+    matrixOfImage = np.zeros((H, W, 3), dtype=np.uint8)
 
     for polygon in polygons:
         top1 = tops[polygon[0] - 1]
@@ -430,5 +455,108 @@ def run():
     image = Image.fromarray(matrixOfImage, 'RGB')
     image.save("image6.jpg")
 
-if __name__ == '__main__':
-    run()
+
+
+    path = "image6.jpg"
+    global picture3
+    picture3 = ImageTk.PhotoImage(Image.open(path))  #
+    canvas.itemconfigure(myimg, image=picture3)  #
+    window.update()
+
+
+
+
+#if __name__ == '__main__':
+#tk = Tk()
+#canvas = Canvas(tk, width=1000, height=1000)
+#canvas.pack()
+
+readFile("another_model.obj")
+#image_obj = PhotoImage(file="image6.jpg")
+#id_img = canvas.create_image(50,50, image=image_obj)
+
+# This creates the main window of an application
+window = tk.Tk()
+
+canvas = tk.Canvas(width=800, height=800, bg='white')
+canvas.grid(row=0, column=0, rowspan=40)
+
+path = "image6.jpg"
+original = Image.open(path)
+picture = ImageTk.PhotoImage(original)
+myimg = canvas.create_image((0, 0), image=picture, anchor="nw")
+
+
+window.title("Лучшее гуи на свете")
+window.geometry("1027x805")
+window.configure(background='grey')
+
+
+
+
+message = tk.StringVar()
+
+label1 = tk.Label(text="Введите scale: ")
+label1.grid(row=0, column=1, sticky="w")
+
+message_entry = tk.Entry(textvariable=message)
+message_entry.insert(0, "0.5")
+message_entry.grid(row=0, column=2)
+
+label1 = tk.Label(text="Введите x света: ")
+label1.grid(row=1, column=1, sticky="w")
+
+label1 = tk.Label(text="Введите y света: ")
+label1.grid(row=2, column=1, sticky="w")
+
+label1 = tk.Label(text="Введите z света: ")
+label1.grid(row=3, column=1, sticky="w")
+
+message_X = tk.StringVar()
+msg_X = tk.Entry(textvariable=message_X)
+msg_X.insert(0, "0.0")
+msg_X.grid(row=1, column=2)
+
+message_Y = tk.StringVar()
+msg_Y = tk.Entry(textvariable=message_Y)
+msg_Y.insert(0, "0.0")
+msg_Y.grid(row=2, column=2)
+
+message_Z = tk.StringVar()
+msg_Z = tk.Entry(textvariable=message_Z)
+msg_Z.insert(0, "1.0")
+msg_Z.grid(row=3, column=2)
+
+
+label4 = tk.Label(text="Введите угол a: ")
+label4.grid(row=4, column=1, sticky="w")
+
+message_a = tk.StringVar()
+msg_a = tk.Entry(textvariable=message_a)
+msg_a.insert(0, "0")
+msg_a.grid(row=4, column=2)
+
+label5 = tk.Label(text="Введите угол b: ")
+label5.grid(row=5, column=1, sticky="w")
+
+message_b = tk.StringVar()
+msg_b = tk.Entry(textvariable=message_b)
+msg_b.insert(0, "0")
+msg_b.grid(row=5, column=2)
+
+label6 = tk.Label(text="Введите угол c: ")
+label6.grid(row=6, column=1, sticky="w")
+
+message_c = tk.StringVar()
+msg_c = tk.Entry(textvariable=message_c)
+msg_c.insert(0, "0")
+msg_c.grid(row=6, column=2)
+
+
+message_button = tk.Button(text="REDRAW", command=redraw)
+message_button.grid(row=15, column=1, columnspan=2)
+
+window.mainloop()
+
+
+
